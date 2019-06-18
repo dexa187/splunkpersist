@@ -37,7 +37,7 @@ type Request struct {
 			Scripttype            string
 		}
 	}
-	Query      [][]string
+	Query      map[string]string
 	Connection struct {
 		SrcIP         string `json:"src_ip"`
 		Ssl           bool
@@ -66,13 +66,11 @@ func Run(r *Router) {
 			opbyte = newbyte
 		}
 		//Get Command
-		//var commanda string
 		if string(opbyte) == opCodeInit {
 			line, _, _ := reader.ReadLine()
 			i, _ := strconv.Atoi(string(line))
 			command := make([]byte, i)
 			_, _ = reader.Read(command)
-			//commanda = string(command)
 		}
 
 		//Get Command Args
@@ -85,20 +83,38 @@ func Run(r *Router) {
 		//Parse the JSON request
 		var query Request
 		err := json.Unmarshal(restArgs, &query)
+		var response Response
 		if err != nil {
-			var out = `{"payload": { "entry": [ {"content" : "test` + err.Error() + `"}] }, "status": 200}`
-			fmt.Println("0")
-			fmt.Printf("%v\n", len(out))
-			fmt.Printf(out)
+			response.AddEntry(err.Error())
 		} else {
-			_, _ = json.Marshal(query)
-			out := r.routes[query.RestPath](query)
-			outString, _ := json.Marshal(out)
-			//var out = `{"payload": { "entry": [ {"content" : "` + myout + `"}] }, "status": 200}`
-			fmt.Println("0")
-			fmt.Printf("%v\n", len(string(outString)))
-			fmt.Printf("%v", string(outString))
+			response = r.routes[query.RestPath](query)
 		}
+		outString, _ := json.Marshal(response)
+		fmt.Println("0")
+		fmt.Printf("%v\n", len(string(outString)))
+		fmt.Printf("%v", string(outString))
 	}
 
+}
+
+func (r *Request) UnmarshalJSON(data []byte) error {
+	type Alias Request
+	aux := &struct {
+		Query [][]string `json:"query"`
+		Form  [][]string `json:"form"`
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	r.Query = make(map[string]string)
+	for _, q := range aux.Query {
+		r.Query[q[0]] = q[1]
+	}
+	for _, q := range aux.Form {
+		r.Query[q[0]] = q[1]
+	}
+	return nil
 }

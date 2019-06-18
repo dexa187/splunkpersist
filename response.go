@@ -22,7 +22,7 @@ type Fields struct {
 type Entry struct {
 	ACL     `json:"acl,omitempty"`
 	Fields  `json:"fields,omitempty"`
-	Content string `json:"content,omitempty"`
+	Content interface{} `json:"content,omitempty"`
 }
 
 //Payload of Response object
@@ -33,7 +33,11 @@ type Payload struct {
 }
 
 //Response Object
-//responce := Responce{Payload{ Entry: []Entry{Entry{Content: "test"}}}}
+//response := Responce{Payload{ Entry: []Entry{Entry{Content: "test"}}}}
 type Response struct {
 	Payload `json:"payload"`
+}
+
+func (r *Response) AddEntry(s interface{}) {
+	r.Entry = append(r.Entry, Entry{Content: s})
 }
